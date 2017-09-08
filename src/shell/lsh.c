@@ -66,6 +66,7 @@ int main(void)
         add_history(line);
         /* execute it */
         n = parse(line, &cmd);
+		  ExecuteSimpleCommand(&cmd);
         PrintCommand(n, &cmd);
       }
     }
@@ -73,9 +74,48 @@ int main(void)
     if(line) {
       free(line);
     }
+
+	/* Waits for any zombie processses and cleans them up */
+	waitpid(-1, NULL, WNOHANG);
   }
   return 0;
 }
+
+/*
+ * Name: ExecuteSimpleCommand
+ *
+ * Description: Executes a single command without pipes or redirects
+ *
+ */
+int ExecuteSimpleCommand(Command *cmd) {
+	int pid;
+	struct c *pgm = cmd->pgm;
+
+	if(pgm->next != NULL) {
+		fprintf(stderr, "Not a SimpleCommand");
+		return 1;
+	}
+
+	pid = fork();
+
+	if(pid < 0) {
+		fprintf(stderr, "Fork Failed");
+		return 1;
+	}else if(pid == 0) {
+		/* Execute the requested command, execvp handles the path */
+		execvp(pgm->pgmlist[0], pgm->pgmlist);
+	} else {
+		/* If it is a background process, don't wait */
+		if(cmd->bakground == 0) {
+			waitpid(pid, NULL, 0);
+		}
+		return 0;
+	}
+}
+
+/*
+ * Provided functions
+ */
 
 /*
  * Name: PrintCommand
