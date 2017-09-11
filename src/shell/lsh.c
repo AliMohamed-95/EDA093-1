@@ -23,6 +23,9 @@
 #include <readline/history.h>
 #include "parse.h"
 
+#include <sys/stat.h> 
+#include <fcntl.h>
+
 /*
  * Function declarations
  */
@@ -88,7 +91,7 @@ int main(void)
  * Description: Executes a command and pipes the output to the next command in the pgm.
  *
  */
-int ExecutePipedCommand(struct c *pgm) {
+int ExecutePipedCommand(Command *cmd, struct c *pgm) {
 	int pid;
 	int fd[2];
 	int ret;
@@ -109,8 +112,13 @@ int ExecutePipedCommand(struct c *pgm) {
 		dup2(fd[1], 1);
 		pgm = pgm->next;
 		if(pgm->next != NULL) {
-			ExecutePipedCommand(pgm);
+			ExecutePipedCommand(cmd, pgm);
 		} else {
+			/* Redirecting standard input */
+			if(cmd->rstdin != NULL) {
+				int infd = open(cmd->rstdin, 0);
+				dup2(infd, 0);
+			}
 			execvp(pgm->pgmlist[0], pgm->pgmlist);
 		}
 	} else { /* Parent code */
@@ -136,10 +144,24 @@ int ExecuteSimpleCommand(Command *cmd) {
 		fprintf(stderr, "Fork Failed. ExecuteSimpleCommand.\n");
 		return 1;
 	} else if(pid == 0) {
+		/* Redirect standard output and error as needed */
+		if(cmd->rstdout != NULL) {
+			int fd = open(cmd->rstdout, O_CREAT|O_RDWR, S_IRWXU);
+			dup2(fd, 1);
+		}
+		if(cmd->rstderr != NULL) {
+			int fd = open(cmd->rstderr, O_CREAT|O_RDWR, S_IRWXU);
+			dup2(fd, 2);
+		}
 		if(pgm->next != NULL) {
 			/* If we have pipes, recursivly execute them instead */
-			ExecutePipedCommand(pgm);
+			ExecutePipedCommand(cmd, pgm);
 		} else {
+			/* Redirect standard input */
+			if(cmd->rstdin != NULL) {
+				int fd = open(cmd->rstdin, 0);
+				dup2(fd, 0);
+			}
 			/* Execute the requested command, execvp handles the path */
 			execvp(pgm->pgmlist[0], pgm->pgmlist);
 		}
