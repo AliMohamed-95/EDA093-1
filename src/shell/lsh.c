@@ -23,8 +23,10 @@
 #include <readline/history.h>
 #include "parse.h"
 
+/* Additional libraries */
 #include <sys/stat.h> 
 #include <fcntl.h>
+#include  <signal.h>
 
 /*
  * Function declarations
@@ -34,6 +36,8 @@ void PrintCommand(int, Command *);
 void PrintPgm(Pgm *);
 void stripwhite(char *);
 int ExecuteSimpleCommand(Command *cmd);
+int ExecutePipedCommand(Command *cmd, struct c *pgm);
+void HandleSigInt();
 
 /* When non-zero, this global means the user is done using this program. */
 int done = 0;
@@ -48,6 +52,9 @@ int main(void)
 {
   Command cmd;
   int n;
+
+  /* Setup the signal handler */
+  signal(SIGINT, HandleSigInt);
 
   while (!done) {
 
@@ -70,8 +77,16 @@ int main(void)
         add_history(line);
         /* execute it */
         n = parse(line, &cmd);
-		  ExecuteSimpleCommand(&cmd);
-        PrintCommand(n, &cmd);
+		  if(strcmp(cmd.pgm->pgmlist[0], "exit") == 0) {
+				exit(0);
+		  } else if(strcmp(cmd.pgm->pgmlist[0], "cd") == 0) {
+				if(chdir(cmd.pgm->pgmlist[1]) != 0){
+					fprintf(stderr, "No such directory.\n");
+				}
+		  } else {
+			  ExecuteSimpleCommand(&cmd);
+		  }
+        //PrintCommand(n, &cmd); /* Used for felsokning */
       }
     }
     
@@ -83,6 +98,11 @@ int main(void)
 	waitpid(-1, NULL, WNOHANG);
   }
   return 0;
+}
+
+/* If shell gets a SIGINT, ignore and reprint prompt */
+void HandleSigInt() {
+	printf("\n> ");
 }
 
 /*
@@ -119,12 +139,12 @@ int ExecutePipedCommand(Command *cmd, struct c *pgm) {
 				int infd = open(cmd->rstdin, 0);
 				dup2(infd, 0);
 			}
-			execvp(pgm->pgmlist[0], pgm->pgmlist);
+			DoExec(cmd, pgm);
 		}
 	} else { /* Parent code */
 		close(fd[1]);
 		dup2(fd[0], 0);
-		execvp(pgm->pgmlist[0], pgm->pgmlist);
+		DoExec(cmd, pgm);
 	}
 }
 
@@ -162,8 +182,8 @@ int ExecuteSimpleCommand(Command *cmd) {
 				int fd = open(cmd->rstdin, 0);
 				dup2(fd, 0);
 			}
-			/* Execute the requested command, execvp handles the path */
-			execvp(pgm->pgmlist[0], pgm->pgmlist);
+
+			DoExec(cmd, pgm);
 		}
 	} else {
 		/* If it is a background process, don't wait */
@@ -171,6 +191,19 @@ int ExecuteSimpleCommand(Command *cmd) {
 			waitpid(pid, NULL, 0);
 		}
 		return 0;
+	}
+}
+
+int DoExec(Command *cmd, struct c *pgm) {
+	/* If process is a background process, ignore SIGINT */
+	if(cmd->bakground != 0) {
+		signal(SIGINT, SIG_IGN);
+	}
+	/* Execute the requested command, execvp handles the path */
+	int re = execvp(pgm->pgmlist[0], pgm->pgmlist);
+	if(re < 0) {
+		fprintf(stderr, "Invalid command: %s\n", pgm->pgmlist[0]);
+		exit(1);
 	}
 }
 
