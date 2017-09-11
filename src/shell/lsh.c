@@ -82,53 +82,67 @@ int main(void)
   return 0;
 }
 
-/* TODO */
+/*
+ * Name: ExecutePipedCommand
+ *
+ * Description: Executes a command and pipes the output to the next command in the pgm.
+ *
+ */
 int ExecutePipedCommand(struct c *pgm) {
 	int pid;
-	int[2] fd;
+	int fd[2];
+	int ret;
 
 	if(pipe(fd) == -1) {
-		fprintf(stderr, "Pipe failed");
+		fprintf(stderr, "Pipe failed.\n");
 		return 1;
 	}
 
 	pid = fork();
 
 	if(pid < 0) {
-		fprintf(stderr, "Fork Failed. ExecutePipedCommand");
+		fprintf(stderr, "Fork Failed. ExecutePipedCommand.\n");
 		return 1;
-	} else if(pid == 0) {
-		close(fd[1]);
-		dup2(fd[1], stdin);
-	} else {
+	} else if(pid == 0) { /* Child code */
+		/* Redirect standard output and either keep recurring or execute command if last in chain */
 		close(fd[0]);
-		dup2(fd[0], stdout);
+		dup2(fd[1], 1);
+		pgm = pgm->next;
+		if(pgm->next != NULL) {
+			ExecutePipedCommand(pgm);
+		} else {
+			execvp(pgm->pgmlist[0], pgm->pgmlist);
+		}
+	} else { /* Parent code */
+		close(fd[1]);
+		dup2(fd[0], 0);
+		execvp(pgm->pgmlist[0], pgm->pgmlist);
 	}
 }
 
 /*
  * Name: ExecuteSimpleCommand
  *
- * Description: Executes a single command without pipes or redirects
+ * Description: Executes a command
  *
  */
 int ExecuteSimpleCommand(Command *cmd) {
 	int pid;
 	struct c *pgm = cmd->pgm;
 
-	if(pgm->next != NULL) {
-		fprintf(stderr, "Not a SimpleCommand");
-		return 1;
-	}
-
 	pid = fork();
 
 	if(pid < 0) {
-		fprintf(stderr, "Fork Failed. ExecuteSimpleCommand");
+		fprintf(stderr, "Fork Failed. ExecuteSimpleCommand.\n");
 		return 1;
-	}else if(pid == 0) {
-		/* Execute the requested command, execvp handles the path */
-		execvp(pgm->pgmlist[0], pgm->pgmlist);
+	} else if(pid == 0) {
+		if(pgm->next != NULL) {
+			/* If we have pipes, recursivly execute them instead */
+			ExecutePipedCommand(pgm);
+		} else {
+			/* Execute the requested command, execvp handles the path */
+			execvp(pgm->pgmlist[0], pgm->pgmlist);
+		}
 	} else {
 		/* If it is a background process, don't wait */
 		if(cmd->bakground == 0) {
