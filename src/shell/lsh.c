@@ -30,6 +30,7 @@
 void PrintCommand(int, Command *);
 void PrintPgm(Pgm *);
 void stripwhite(char *);
+int ExecuteSimpleCommand(Command *cmd);
 
 /* When non-zero, this global means the user is done using this program. */
 int done = 0;
@@ -81,6 +82,30 @@ int main(void)
   return 0;
 }
 
+/* TODO */
+int ExecutePipedCommand(struct c *pgm) {
+	int pid;
+	int[2] fd;
+
+	if(pipe(fd) == -1) {
+		fprintf(stderr, "Pipe failed");
+		return 1;
+	}
+
+	pid = fork();
+
+	if(pid < 0) {
+		fprintf(stderr, "Fork Failed. ExecutePipedCommand");
+		return 1;
+	} else if(pid == 0) {
+		close(fd[1]);
+		dup2(fd[1], stdin);
+	} else {
+		close(fd[0]);
+		dup2(fd[0], stdout);
+	}
+}
+
 /*
  * Name: ExecuteSimpleCommand
  *
@@ -99,7 +124,7 @@ int ExecuteSimpleCommand(Command *cmd) {
 	pid = fork();
 
 	if(pid < 0) {
-		fprintf(stderr, "Fork Failed");
+		fprintf(stderr, "Fork Failed. ExecuteSimpleCommand");
 		return 1;
 	}else if(pid == 0) {
 		/* Execute the requested command, execvp handles the path */
