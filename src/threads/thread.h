@@ -90,6 +90,9 @@ struct thread
     int priority;                       /* Priority. */
     struct list_elem allelem;           /* List element for all threads list. */
 
+	 bool sleeping;							 /* Is the thread currently sleeping */
+	 int64_t sleep_end;						 /* The time to wake up the thread */
+
     /* Shared between thread.c and synch.c. */
     struct list_elem elem;              /* List element. */
 
@@ -109,6 +112,9 @@ extern bool thread_mlfqs;
 
 void thread_init (void);
 void thread_start (void);
+
+void thread_sleep_start(int64_t sleep_start, int64_t sleep_time);
+void thread_sleep_check(struct thread *t, int64_t *current_time);
 
 void thread_tick (void);
 void thread_print_stats (void);

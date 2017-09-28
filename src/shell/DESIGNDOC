@@ -8,8 +8,8 @@
 
 >> Fill in the names and email addresses of your group members.
 
-FirstName LastName <email@domain.example>
-FirstName LastName <email@domain.example>
+Viktor Lindblom viklindb@student.chalmers.se
+Kevin Nordenhög nkevin@student.chalmers.se
 
 ---- PRELIMINARIES ----
 
@@ -19,6 +19,8 @@ FirstName LastName <email@domain.example>
 >> Please cite any offline or online sources you consulted while
 >> preparing your submission, other than the Pintos documentation, course
 >> text, lecture notes, and course instructors.
+
+We've used the built-in man pages and sites like stackoverflow to find answers.
 
 			   COMMAND SHELL
 			   =============
@@ -32,9 +34,14 @@ which parts.
 >> L1: How many hours did each team member spend on this assignment?
    Make sure that each member's total time is listed.
 
+	Viktor: 5h
+	Kevin: 5h
+
+
 >> L2: What did each team member focus on for this assignment?  Keep
    descriptions to 25-30 words or less.
-
+	
+	All work was done in a group, working side by side.
 
 			  SURVEY QUESTIONS
 			  ================
@@ -47,19 +54,25 @@ penalized.  We can't fix things until we know about them.  :-)
 
 >> In your opinion, was this assignment, or any of the parts of it, too
 >> easy or too hard?  Did it take too long or too little time?
+	Assignment was not too hard.
 
 >> Did you find that working on a particular part of the assignment gave
 >> you greater insight into some aspect of OS design?
+	Not very much for the OS design. Some familiarity with forks and pipes etc.
 
 >> Were there any parts of the assignment that you felt were unnecessarily
 >> tedious or pointless?
+	Not really, some good help from the assignment structure and the provided code.
 
 >> Is there some particular fact or hint we should give students in
 >> future quarters to help them solve the problems?  Conversely, did you
 >> find any of our guidance to be misleading?
+	No
 
 >> Do you have any suggestions for the instructor and/or TAs to more
 >> effectively assist students, either for future quarters or the remaining
 >> projects?
+	No
 
 >> Any other comments?
+	It was fun.

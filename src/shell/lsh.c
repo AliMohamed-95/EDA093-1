@@ -78,7 +78,8 @@ int main(void)
         /* execute it */
         n = parse(line, &cmd);
 		  if(strcmp(cmd.pgm->pgmlist[0], "exit") == 0) {
-				exit(0);
+				/* If user inputs exit, put done = 1 for nice exit */
+				done = 1;
 		  } else if(strcmp(cmd.pgm->pgmlist[0], "cd") == 0) {
 				if(chdir(cmd.pgm->pgmlist[1]) != 0){
 					fprintf(stderr, "No such directory.\n");
@@ -108,7 +109,7 @@ void HandleSigInt() {
 /*
  * Name: ExecutePipedCommand
  *
- * Description: Executes a command and pipes the output to the next command in the pgm.
+ * Description: Executes a command and pipes the output to the next command in the pgm list.
  *
  */
 int ExecutePipedCommand(Command *cmd, struct c *pgm) {
@@ -130,7 +131,10 @@ int ExecutePipedCommand(Command *cmd, struct c *pgm) {
 		/* Redirect standard output and either keep recurring or execute command if last in chain */
 		close(fd[0]);
 		dup2(fd[1], 1);
+
+		/* Move one step forward in pgm list */
 		pgm = pgm->next;
+
 		if(pgm->next != NULL) {
 			ExecutePipedCommand(cmd, pgm);
 		} else {
@@ -173,6 +177,7 @@ int ExecuteSimpleCommand(Command *cmd) {
 			int fd = open(cmd->rstderr, O_CREAT|O_RDWR, S_IRWXU);
 			dup2(fd, 2);
 		}
+
 		if(pgm->next != NULL) {
 			/* If we have pipes, recursivly execute them instead */
 			ExecutePipedCommand(cmd, pgm);
@@ -186,7 +191,7 @@ int ExecuteSimpleCommand(Command *cmd) {
 			DoExec(cmd, pgm);
 		}
 	} else {
-		/* If it is a background process, don't wait */
+		/* If it isn't a background process, the shell waits */
 		if(cmd->bakground == 0) {
 			waitpid(pid, NULL, 0);
 		}
@@ -194,6 +199,12 @@ int ExecuteSimpleCommand(Command *cmd) {
 	}
 }
 
+/*
+ * Name: DoExec
+ *
+ * Description: Does some checks and executes a command
+ *
+ */
 int DoExec(Command *cmd, struct c *pgm) {
 	/* If process is a background process, ignore SIGINT */
 	if(cmd->bakground != 0) {
