@@ -105,12 +105,14 @@ void
 thread_sleep_start(int64_t sleep_start, int64_t sleep_time)
 {
 	struct thread *t = thread_current ();
-	
+	enum intr_level old_level;
+
 	t->sleeping = 1;
 	t->sleep_end = sleep_start + sleep_time;
 
-	intr_disable();
+	old_level = intr_disable ();
 	thread_block();
+	intr_set_level (old_level);
 }
 
 /* Checks if the thread has slept enough and unblocks if it is done sleeping */
@@ -118,7 +120,7 @@ void
 thread_sleep_check(struct thread *t, int64_t *current_time)
 {
 	if(t->sleeping) {
-		if(t->sleep_end < *current_time) {
+		if(t->sleep_end <= *current_time) {
 			t->sleeping = 0;
 			thread_unblock(t);
 		}
