@@ -76,16 +76,16 @@ void batchScheduler(unsigned int num_tasks_send, unsigned int num_task_receive,
 
 	//Creates a thread for every task
 	for(i = 0; i<num_tasks_send; i++) {
-		thread_create("SenderTask", 3, senderTask, NULL);
+		thread_create("SenderTask", 1, senderTask, NULL);
 	}
 	for(i = 0; i<num_task_receive; i++) {
-		thread_create("ReceiverTask", 3, receiverTask, NULL);
+		thread_create("ReceiverTask", 1, receiverTask, NULL);
 	}
 	for(i = 0; i<num_priority_send; i++) {
-		thread_create("SenderPriorityTask", 3, senderPriorityTask, NULL);
+		thread_create("SenderPriorityTask", 63, senderPriorityTask, NULL);
 	}
 	for(i = 0; i<num_priority_receive; i++) {
-		thread_create("ReceiverPriorityTask", 3, receiverPriorityTask, NULL);
+		thread_create("ReceiverPriorityTask", 63, receiverPriorityTask, NULL);
 	}
 }
 

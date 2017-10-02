@@ -107,10 +107,10 @@ thread_sleep_start(int64_t sleep_start, int64_t sleep_time)
 	struct thread *t = thread_current ();
 	enum intr_level old_level;
 
+	old_level = intr_disable ();
 	t->sleeping = 1;
 	t->sleep_end = sleep_start + sleep_time;
 
-	old_level = intr_disable ();
 	thread_block();
 	intr_set_level (old_level);
 }

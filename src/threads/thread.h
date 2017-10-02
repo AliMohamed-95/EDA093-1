@@ -90,7 +90,7 @@ struct thread
     int priority;                       /* Priority. */
     struct list_elem allelem;           /* List element for all threads list. */
 
-	 bool sleeping;							 /* Is the thread currently sleeping */
+	 bool sleeping;							 /* Is the thread in ticks currently sleeping */
 	 int64_t sleep_end;						 /* The time to wake up the thread */
 
     /* Shared between thread.c and synch.c. */
