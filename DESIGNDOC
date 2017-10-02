@@ -1,0 +1,134 @@
+			+--------------------+
+			|    EDA092/DIT400   |
+			| LAB ASSIGNMENT 2:  |
+			| 	THREADS      |
+			|   DESIGN DOCUMENT  |
+			+--------------------+
+				   
+---- GROUP B12 ----
+
+>> Fill in the group number, names and email addresses of your group members.
+
+Kevin Nordenhög nkevin@student.chalmers.se
+Viktor Lindblom viklindb@student.chalmers.se
+
+---- PRELIMINARIES ----
+
+>> If you have any preliminary comments on your submission, notes for the
+>> TAs, please give them here.
+
+We used some online sources, for example stackoverflow and cprogramming.com
+using google to find answers.
+
+			     ALARM CLOCK
+			     ===========
+
+---- DATA STRUCTURES ----
+
+>> A1: Copy here the declaration of each new or changed `struct' or
+>> `struct' member, global or static variable, `typedef', or
+>> enumeration.  Identify the purpose of each in 25 words or less.
+
+From thread.h
+In struct thread:
+	 bool sleeping;							 /* Is the thread currently sleeping */
+	 int64_t sleep_end;						 /* The time in ticks to wake up the thread */
+
+---- ALGORITHMS ----
+
+>> A2: Briefly describe what happens in a call to timer_sleep(),
+>> including the effects of the timer interrupt handler.
+
+In timer_sleep checks the current time and sets it as the start time
+for the sleep. Then it calls on thread_sleep_start in thread.c. thread_sleep_start
+sets the current threads status to sleeping and saves the time when
+the thread should wake up. Then we disable interrupts and block. When the
+thread wakes up we restore the interrupt level.
+
+In timer_interrupt we save save the current time and go through all
+threads with thread_foreach using the function thread_sleep_check on
+all threads. That function checks if the thread is sleeping and if 
+it is, then we check if it is supposed to wake up. If the time has 
+come to wake up, we set the threads status to not sleeping and unblock it.
+
+>> A3: What steps are taken to minimize the amount of time spent in
+>> the timer interrupt handler?
+
+We are doing a minimum amount of checks to determine if we should
+wake the thread or not.
+
+---- SYNCHRONIZATION ----
+
+>> A4: How are race conditions avoided when multiple threads call
+>> timer_sleep() simultaneously?
+
+We are not using any global variables in timer_sleep or the function
+it calls, so no race condition can apply there. Then we disable
+interrupts before blocking and restore it afterwards.
+
+>> A5: How are race conditions avoided when a timer interrupt occurs
+>> during a call to timer_sleep()?
+
+We disable interrupts before we set the thread to sleeping so that
+no timer interrupt can occur and try to unblock a non-blocked thread.
+
+---- RATIONALE ----
+
+>> A6: Why did you choose this design?  In what ways is it superior to
+>> another design you considered?
+
+It seemed like a simple implementation of the timer. Each thread keeps
+track of its own sleeping status.
+
+			    BATCH SCHEDULING
+			    ================
+---- DATA STRUCTURES ----
+
+>> A1: Copy here the declaration of each new or changed `struct' or
+>> `struct' member, global or static variable, semaphore, `typedef', or
+>> enumeration.  Identify the purpose of each in 25 words or less.
+
+---- SYNCHRONIZATION ----
+
+>> C1: How does your solution guarantee that no more that 3 tasks
+>> are using the bus in the same direction?
+
+>> C2: What prevents tasks from opposite directions from using the
+>> bus simultaneously?
+
+>> C3: How does your solution grant priority to high priority tasks over
+>> the waiting tasks in the same direction?
+
+>> C4: How do you guarantee that despite having priority, high priority
+>> tasks do not start using the bus while there are still still using
+>> it in the oposite direction?
+
+---- RATIONALE ----
+
+>> C6: Why did you choose this design? Did you consider other design 
+>> alternatives? In what ways is it superior to another design you considered?
+
+
+			   SURVEY QUESTIONS (optional)
+			   ===========================
+
+Answering these questions is optional, but it will help us improve the
+course in future quarters.  Feel free to tell us anything you
+want--these questions are just to spur your thoughts.  You may also
+choose to respond anonymously in the course evaluations at the end of
+the quarter.
+
+>> In your opinion, was this assignment, or any one of the three problems
+>> in it, too easy or too hard?  Did it take too long or too little time?
+
+>> Did you find that working on a particular part of the assignment gave
+>> you greater insight into some aspect of OS design?
+
+>> Is there some particular fact or hint we should give students in
+>> future quarters to help them solve the problems?  Conversely, did you
+>> find any of our guidance to be misleading?
+
+>> Do you have any suggestions for the TAs to more effectively assist
+>> students, either for future quarters?
+
+>> Any other comments?
