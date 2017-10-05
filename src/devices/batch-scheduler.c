@@ -41,7 +41,10 @@ void oneTask(task_t task);/*Task requires to use the bus and executes methods be
 	void leaveSlot(task_t task); /* task release the slot */
 
 struct lock mutex;
-struct condition cond;
+struct condition highSen;
+struct condition lowSen;
+struct condition highRec;
+struct condition lowRec;
 int direction = OPEN;
 int waitingHighSender = 0;
 int waitingHighReceiver = 0;
@@ -53,7 +56,10 @@ void init_bus(void){
     random_init((unsigned int)123456789); 
     
 	 lock_init(&mutex);
-	 cond_init(&cond);
+	 cond_init(&highSen);
+	 cond_init(&lowSen);
+	 cond_init(&highRec);
+	 cond_init(&lowRec);
 }
 
 /*
@@ -71,9 +77,6 @@ void batchScheduler(unsigned int num_tasks_send, unsigned int num_task_receive,
         unsigned int num_priority_send, unsigned int num_priority_receive)
 {
 	unsigned int i = 0;
-
-	//printf("%d, %d, %d, %d\n", num_tasks_send, num_task_receive, num_priority_send, num_priority_receive);
-
 	//Creates a thread for every task
 	for(i = 0; i<num_tasks_send; i++) {
 		thread_create("SenderTask", 1, senderTask, NULL);
@@ -129,14 +132,14 @@ void getSlot(task_t task)
 		if(task.priority == HIGH) {
 			waitingHighSender++;
 			while(openSlots <= 0 || direction == RECEIVER) {	//If you are a sender with high priority, only wait for full bus or wrong direction
-				cond_wait(&cond, &mutex);
+				cond_wait(&highSen, &mutex);
 			}
 			waitingHighSender--;
 			direction = task.direction;
 			openSlots--;
 		} else {
 			while(openSlots <= 0 || direction == RECEIVER || waitingHighSender > 0 || waitingHighReceiver > 0) {	//If you are a sender with low priority, wait for full bus, wrong direction or any higher priority tasks.
-				cond_wait(&cond, &mutex);
+				cond_wait(&lowSen, &mutex);
 			}
 			direction = task.direction;
 			openSlots--;
@@ -145,26 +148,30 @@ void getSlot(task_t task)
 		if(task.priority == HIGH) {
 			waitingHighReceiver++;
 			while(openSlots <= 0 || direction == SENDER) {	//See above
-				cond_wait(&cond, &mutex);
+				cond_wait(&highRec, &mutex);
 			}
 			waitingHighReceiver--;
 			direction = task.direction;
 			openSlots--;
 		} else {
 			while(openSlots <= 0 || direction == SENDER || waitingHighReceiver > 0 || waitingHighSender > 0) {	//See above
-				cond_wait(&cond, &mutex);
+				cond_wait(&lowRec, &mutex);
 			}
 			direction = task.direction;
 			openSlots--;
 		}
 	 }
+	ASSERT(openSlots >= 0);			//Check that the bus is not overfull.
+	if(task.priority == NORMAL) {
+		ASSERT(waitingHighReceiver == 0 && waitingHighSender == 0);		//Check that no low priority task goes before a high priority task.
+	}
 	 lock_release(&mutex);
 }
 
 /* task processes data on the bus send/receive */
 void transferData(task_t task) 
 {
-	timer_msleep(random_ulong() % 200);
+	timer_msleep(100 + random_ulong() % 100);
 }
 
 /* task releases the slot */
@@ -172,6 +179,8 @@ void leaveSlot(task_t task)
 {
 	lock_acquire(&mutex);
 	openSlots++;
+	ASSERT(openSlots <= BUS_CAPACITY);			//Check that the number of slots on the bus is correct
+	ASSERT(direction == task.direction);		//Check that the direction has not changed since the task entered
 	/*
 	 * If the bus is empty, which can happen either if no tasks from this direction are waiting
 	 * or if high priority tasks exist on the opposite end and no high priority tasks from this direction are waiting.
@@ -180,8 +189,36 @@ void leaveSlot(task_t task)
 		direction = OPEN;
 	}
 	/*
-	 * Wake all waiting threads, the while-loop guards take care of selecting the proper task to continue. The rest wait again.
+	 * Wake all a thread for each category that might want to run now. The thread checks if it can run or not.
 	 */
-	cond_broadcast(&cond, &mutex);
+	if(direction == SENDER) {
+		if(waitingHighSender > 0) {
+			cond_signal(&highSen, &mutex);
+		} else {
+			cond_signal(&highRec, &mutex);
+			cond_signal(&lowSen, &mutex);
+			cond_signal(&lowRec, &mutex);
+		}
+	} else if(direction == RECEIVER) {
+		if(waitingHighReceiver > 0) {
+			cond_signal(&highRec, &mutex);
+		} else {
+			cond_signal(&highSen, &mutex);
+			cond_signal(&lowSen, &mutex);
+			cond_signal(&lowRec, &mutex);
+		}
+	} else {
+		int i = 0;
+		/*
+		 * When the bus is empty, try to wake three threads. The threads themselves will check which can run.
+	 	*/
+		for(i = 0; i<BUS_CAPACITY; i++) {
+			cond_signal(&highRec, &mutex);
+			cond_signal(&highSen, &mutex);
+			cond_signal(&lowSen, &mutex);
+			cond_signal(&lowRec, &mutex);
+		}
+	}
+
 	lock_release(&mutex);
 }
