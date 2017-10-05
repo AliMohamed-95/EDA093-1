@@ -195,16 +195,12 @@ void leaveSlot(task_t task)
 		if(waitingHighSender > 0) {
 			cond_signal(&highSen, &mutex);
 		} else {
-			cond_signal(&highRec, &mutex);
 			cond_signal(&lowSen, &mutex);
-			cond_signal(&lowRec, &mutex);
 		}
 	} else if(direction == RECEIVER) {
 		if(waitingHighReceiver > 0) {
 			cond_signal(&highRec, &mutex);
 		} else {
-			cond_signal(&highSen, &mutex);
-			cond_signal(&lowSen, &mutex);
 			cond_signal(&lowRec, &mutex);
 		}
 	} else {
