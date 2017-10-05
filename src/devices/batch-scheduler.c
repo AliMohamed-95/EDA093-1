@@ -47,6 +47,10 @@ int waitingHighSender = 0;
 int waitingHighReceiver = 0;
 int openSlots = BUS_CAPACITY;
 
+//TODO REMOVE
+int waitingLowSender = 0;
+int waitingLowReceiver = 0;
+
 /* initializes semaphores */ 
 void init_bus(void){ 
 
@@ -147,6 +151,9 @@ void getSlot(task_t task)
 			while(openSlots <= 0 || direction == SENDER) {	//See above
 				cond_wait(&cond, &mutex);
 			}
+			if(direction == SENDER) {
+				printf("Error! Receiver on sender bus!\n");
+			}
 			waitingHighReceiver--;
 			direction = task.direction;
 			openSlots--;
@@ -164,7 +171,7 @@ void getSlot(task_t task)
 /* task processes data on the bus send/receive */
 void transferData(task_t task) 
 {
-	timer_msleep(random_ulong() % 200);
+	timer_msleep(200 + random_ulong() % 200);
 }
 
 /* task releases the slot */
